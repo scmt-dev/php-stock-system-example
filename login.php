@@ -1,3 +1,31 @@
+<?php 
+include_once 'config/db.php';
+$message = '';
+if(isset($_POST['email'])) {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+
+    $sql = "SELECT * FROM users WHERE email =?";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    if ($row) {
+        if (password_verify($password, $row['password'])) {
+            session_start();
+            $_SESSION['user'] = $row;
+            // redirect to index.php
+            header('Location: index.php');
+        }else{
+            $message = 'Login fail!';
+        }
+    }else {
+        $message = 'Email record not found';
+    }
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,14 +43,9 @@ Login Account
     <input type="password" name="password">
     <br>
     <button>Login</button>
-
-    <?php
-        $users = [
-            array('email' => 'email1@example.com', 'password' => '12345'),
-            array('email' => 'email2@example.com', 'password' => '12345'),
-        ];
-        
-    ?>
+    <div>
+        <?php echo $message ?>
+    </div>
 </form>
 </body>
 </html>
