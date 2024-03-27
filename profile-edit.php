@@ -1,5 +1,6 @@
 <?php 
 session_start();
+include_once 'config/db.php';
 $user = $_SESSION['user'];
 if (!($user)) {
     header('Location: login.php');
@@ -7,6 +8,15 @@ if (!($user)) {
 }
 
 if(isset($_POST['submit'])) {
+    // update user profile with email and name
+    $email = $_POST['email'];
+    $name = $_POST['name'];
+    $sql = "UPDATE users SET email = ?, name = ? WHERE id = ?";
+    $stmt = $db->prepare($sql);
+    $stmt->bind_param('ssi', $email, $name, $user['id']);
+    $stmt->execute();
+    $stmt->close();
+
     $target_dir = "uploads/";
     $target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
     $uploadOk = 0;
@@ -27,8 +37,9 @@ if(isset($_POST['submit'])) {
         $uploadOk = 0;
     }
     
-    // Check file size
-    if ($_FILES["fileToUpload"]["size"] > 500000) {
+    // Check file max size 3mb
+    $maxSize = 1024 * 1024 * 3;
+    if ($_FILES["fileToUpload"]["size"] > $maxSize) {
         echo "Sorry, your file is too large.";
         $uploadOk = 0;
     }
@@ -47,6 +58,11 @@ if(isset($_POST['submit'])) {
     } else {
         if (move_uploaded_file($_FILES["fileToUpload"]["tmp_name"], $target_file)) {
         echo "The file ". htmlspecialchars( basename( $_FILES["fileToUpload"]["name"])). " has been uploaded.";
+        $sql = "UPDATE users SET profile = ? WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->bind_param('si', $target_file, $user['id']);
+        $stmt->execute();
+        $stmt->close();
         } else {
         echo "Sorry, there was an error uploading your file.";
         }
@@ -74,6 +90,7 @@ if(isset($_POST['submit'])) {
         <p>
             <label for="image">Image</label>
             <input type="file" accept="image/*" name="fileToUpload" id="image">
+            <img src="" alt="" id="preview" width="100" height="100">
         </p>
         <p>
             <input type="submit" name="submit" value="Update">
@@ -81,3 +98,15 @@ if(isset($_POST['submit'])) {
     </form>
 </body>
 </html>
+
+<script>
+// preview image
+document.querySelector('#image').addEventListener('change', function() {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+        document.querySelector('#preview').setAttribute('src', reader.result);
+    });
+    reader.readAsDataURL(this.files[0]);
+});
+
+</script>
